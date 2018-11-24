@@ -1,0 +1,941 @@
+
+R version 3.4.3 (2017-11-30) -- "Kite-Eating Tree"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-w64-mingw32/x64 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+[Workspace loaded from ~/.RData]
+
+Loading required package: arulesSequences
+Loading required package: arules
+Loading required package: Matrix
+
+Attaching package: ‘arules’
+
+The following objects are masked from ‘package:base’:
+
+    abbreviate, write
+
+> #setwd("D:\\Rajib\\XLRI\\datamining\\Project\\")
+> setwd("C:\\Software\\xlri\\Datamining\\Resource\\Project\\WIP")
+> getwd()
+[1] "C:/Software/xlri/Datamining/Resource/Project/WIP"
+> #install.packages("party")
+> library(MASS)
+> library(corrplot)
+corrplot 0.84 loaded
+> library(car)
+
+Attaching package: ‘car’
+
+The following object is masked from ‘package:arules’:
+
+    recode
+
+> library(caTools)
+> library(ROCR)
+Loading required package: gplots
+
+Attaching package: ‘gplots’
+
+The following object is masked from ‘package:stats’:
+
+    lowess
+
+> library(rpart) # load libraries
+> library("rpart.plot")
+> library(ggplot2)
+> library(randomForest)
+randomForest 4.6-12
+Type rfNews() to see new features/changes/bug fixes.
+
+Attaching package: ‘randomForest’
+
+The following object is masked from ‘package:ggplot2’:
+
+    margin
+
+> library(party)
+Loading required package: grid
+Loading required package: mvtnorm
+Loading required package: modeltools
+Loading required package: stats4
+
+Attaching package: ‘modeltools’
+
+The following object is masked from ‘package:arules’:
+
+    info
+
+Loading required package: strucchange
+Loading required package: zoo
+
+Attaching package: ‘zoo’
+
+The following objects are masked from ‘package:base’:
+
+    as.Date, as.Date.numeric
+
+Loading required package: sandwich
+> library(gridExtra)
+
+Attaching package: ‘gridExtra’
+
+The following object is masked from ‘package:randomForest’:
+
+    combine
+
+> 
+> 
+> consumercomplain<-read.csv("Consumer_Complaints.csv",header=TRUE, na.strings=c("","NA"))
+> str(consumercomplain)
+'data.frame':	39174 obs. of  18 variables:
+ $ Date.received               : Factor w/ 2203 levels "01-01-2012","01-01-2013",..: 1528 294 1903 1983 20 457 1066 521 990 1111 ...
+ $ Product                     : Factor w/ 17 levels "Bank account or service",..: 8 4 11 4 4 8 4 11 11 4 ...
+ $ Sub.product                 : Factor w/ 71 levels "(CD) Certificate of deposit",..: 12 NA 48 NA NA 12 NA 30 30 NA ...
+ $ Issue                       : Factor w/ 141 levels "Account opening, closing, or management",..: 34 42 75 31 17 53 11 76 76 74 ...
+ $ Sub.issue                   : Factor w/ 170 levels "Account information incorrect",..: 68 NA NA NA NA 93 NA NA NA NA ...
+ $ Consumer.complaint.narrative: Factor w/ 8819 levels "- Had to get a new account last year ( 2014 ) due to fraud. \n- I had a line of credit attached to the account "| __truncated__,..: NA 8426 NA NA NA NA NA 7422 8182 NA ...
+ $ Company.public.response     : Factor w/ 3 levels "Company believes it acted appropriately as authorized by contract or law",..: NA 3 NA NA NA 3 NA NA NA 3 ...
+ $ Company                     : Factor w/ 1 level "CITIBANK, N.A.": 1 1 1 1 1 1 1 1 1 1 ...
+ $ State                       : Factor w/ 61 levels "AA","AE","AK",..: 55 21 9 33 22 25 9 61 32 42 ...
+ $ ZIP.code                    : Factor w/ 10987 levels "-2914","006XX",..: 2095 6495 10193 4368 5207 7318 9683 8699 6760 552 ...
+ $ Tags                        : Factor w/ 3 levels "Older American",..: NA NA NA NA NA NA NA NA NA NA ...
+ $ Consumer.consent.provided.  : Factor w/ 5 levels "Consent not provided",..: 4 2 4 4 4 1 4 2 2 4 ...
+ $ Submitted.via               : Factor w/ 6 levels "Email","Fax",..: 6 6 5 4 5 6 6 6 6 4 ...
+ $ Date.sent.to.company        : Factor w/ 2078 levels "01-01-2013","01-01-2014",..: 1441 276 1820 1909 34 430 1022 500 934 1058 ...
+ $ Company.response.to.consumer: Factor w/ 8 levels "Closed","Closed with explanation",..: 2 2 2 2 2 4 3 4 4 3 ...
+ $ Timely.response.            : Factor w/ 2 levels "No","Yes": 2 2 2 2 2 2 2 2 2 2 ...
+ $ Consumer.disputed.          : Factor w/ 2 levels "No","Yes": 2 1 1 1 1 1 1 1 1 2 ...
+ $ Complaint.ID                : int  1027760 2349987 192496 1135236 223071 2389782 446256 1853003 1421473 1997215 ...
+> 
+> 
+> 
+> #Explanatory Data analysis -Generate bar plot
+> 
+> p1 <- ggplot(consumercomplain, aes(x=consumercomplain$Tags)) + ggtitle("Tags") + xlab("Tags") +
++   geom_bar(aes(y = 100*(..count..)/sum(..count..)), width = 0.5) + ylab("Percentage") + coord_flip() + theme_minimal()
+> p2 <- ggplot(consumercomplain, aes(x=consumercomplain$Submitted.via)) + ggtitle("Submitted.via") + xlab("Submitted.via") +
++   geom_bar(aes(y = 100*(..count..)/sum(..count..)), width = 0.5) + ylab("Percentage") + coord_flip() + theme_minimal()
+> p3 <- ggplot(consumercomplain, aes(x=consumercomplain$ Company.response.to.consumer)) + ggtitle("Company.response.to.consumer") + xlab("Company.response.to.consumer") +
++   geom_bar(aes(y = 100*(..count..)/sum(..count..)), width = 0.5) + ylab("Percentage") + coord_flip() + theme_minimal()
+> p4 <- ggplot(consumercomplain, aes(x=consumercomplain$Timely.response.)) + ggtitle("Timely.response.") + xlab("Timely.response.") +
++   geom_bar(aes(y = 100*(..count..)/sum(..count..)), width = 0.5) + ylab("Percentage") + coord_flip() + theme_minimal()
+> 
+> p5 <- ggplot(consumercomplain, aes(x=consumercomplain$ Consumer.disputed.)) + ggtitle("Consumer.disputed.") + xlab("Consumer.disputed.") +
++   geom_bar(aes(y = 100*(..count..)/sum(..count..)), width = 0.5) + ylab("Percentage") + coord_flip() + theme_minimal()
+> p6 <- ggplot(consumercomplain, aes(x=consumercomplain$Consumer.consent.provided)) + ggtitle("Consumer.consent.provided") + xlab("Consumer.consent.provided") +
++   geom_bar(aes(y = 100*(..count..)/sum(..count..)), width = 0.5) + ylab("Percentage") + coord_flip() + theme_minimal()
+> grid.arrange(p1, p2, p3, p4,p5,p6, ncol=2)
+> 
+> consumercomplain[consumercomplain=="N/A"] <- "NA"
+Warning message:
+In `[<-.factor`(`*tmp*`, thisvar, value = "NA") :
+  invalid factor level, NA generated
+> 
+> 
+> 
+> #Mode function
+> 
+> Mode <- function (x, na.rm) {
++     xtab <- table(x)
++     xmode <- names(which(xtab == max(xtab)))
++     if (length(xmode) > 1) xmode <- ">1 mode"
++     return(xmode)
++ }
+> 
+> for (var in 1:ncol(consumercomplain))
++   {
++    if (class(consumercomplain[,var])=="numeric")
++      {
++        consumercomplain[is.na(consumercomplain[,var]),var] <- mean(consumercomplain[,var], na.rm = TRUE)
++     
++       } else if (class(consumercomplain[,var]) %in% c("character", "factor")) 
++         {
++           consumercomplain[is.na(consumercomplain[,var]),var] <- Mode(consumercomplain[,var], na.rm = TRUE)
++       }
++ }
+Warning message:
+In `[<-.factor`(`*tmp*`, iseq, value = c(">1 mode", ">1 mode", ">1 mode",  :
+  invalid factor level, NA generated
+> 
+> 
+> #Generate dummy variables
+> 
+> consumercomplain$Consumer.consent.provided.[consumercomplain$Consumer.consent.provided.=="NA"] <- "Consent provided"
+> consumercomplain$Timely.response<- ifelse(consumercomplain$Timely.response. == "Yes", 1, 0)
+> consumercomplain$Consumer.disputed_Y<-ifelse(consumercomplain$Consumer.disputed.=='Yes',1,0)
+> consumercomplain$Tags_Service <- ifelse(consumercomplain$Tags == "Older American", 1, 0)
+> consumercomplain$Consumer.consent.provided <- ifelse(consumercomplain$Consumer.consent.provided. == "Consent provided", 1, 0)
+> consumercomplain$Submitted.via[consumercomplain$Submitted.via=="Web"]<-"Email"
+> 
+> 
+> 
+> 
+> for(level in unique(consumercomplain$Submitted.via)){
++   
++   consumercomplain[paste("Submitted.via",   gsub("-","_", gsub(" ","_",level, fixed=TRUE), fixed=TRUE), sep = "_")] <- ifelse(consumercomplain$Submitted.via == level, 1, 0)
++   
++ }
+> 
+> 
+> 
+> #Remove unwanted columns
+> 
+> consumercomplain$Timely.response. <- NULL
+> consumercomplain$Date.received<-NULL
+> consumercomplain$Company.response.to.consumer<-NULL
+> consumercomplain$Submitted.via<-NULL
+> consumercomplain$Consumer.consent.provided.<-NULL
+> consumercomplain$Tags<-NULL
+> consumercomplain$Consumer.disputed.<-NULL
+> consumercomplain$Sub.product<-NULL
+> consumercomplain$Sub.issue<-NULL
+> consumercomplain$Consumer.complaint.narrative<-NULL
+> consumercomplain$ZIP.code<-NULL
+> consumercomplain$Date.sent.to.company<-NULL
+> 
+> ####Split data
+> set.seed(200)
+> splitdata<-sample.split(consumercomplain,SplitRatio=.7)
+> consumercomplaintrainig<-subset(consumercomplain,splitdata==TRUE)
+> consumercomplaintesting<-subset(consumercomplain,splitdata==FALSE)
+> #Logistic regression
+> 
+> res <-glm(Consumer.disputed_Y~
++           Product         
++           +Company.public.response
++           +Timely.response
++           +Tags_Service
++           +Consumer.consent.provided
++           +Submitted.via_Referral
++           +Submitted.via_Postal_mail
++           +Submitted.via_Phone
++           +Submitted.via_Fax
++           ,data=consumercomplain,family = "binomial")
+> 
+> #the linearly dependent variables
+> 
+> ld.vars <- attributes(alias(res)$Complete)$dimnames[[1]]
+> ld.vars
+NULL
+> print(summary(res))
+
+Call:
+glm(formula = Consumer.disputed_Y ~ Product + Company.public.response + 
+    Timely.response + Tags_Service + Consumer.consent.provided + 
+    Submitted.via_Referral + Submitted.via_Postal_mail + Submitted.via_Phone + 
+    Submitted.via_Fax, family = "binomial", data = consumercomplain)
+
+Deviance Residuals: 
+     Min        1Q    Median        3Q       Max  
+-0.91557  -0.68880  -0.64046   0.00021   2.53190  
+
+Coefficients:
+                                                                                                                         Estimate
+(Intercept)                                                                                                              -2.39878
+ProductChecking or savings account                                                                                       19.19961
+ProductConsumer Loan                                                                                                      0.08453
+ProductCredit card                                                                                                        0.17361
+ProductCredit card or prepaid card                                                                                       19.13563
+ProductCredit reporting                                                                                                   0.18147
+ProductCredit reporting, credit repair services, or other personal consumer reports                                      19.10862
+ProductDebt collection                                                                                                    0.62792
+ProductMoney transfer, virtual currency, or money service                                                                19.17543
+ProductMoney transfers                                                                                                   -0.25906
+ProductMortgage                                                                                                           0.57901
+ProductOther financial service                                                                                           -0.08491
+ProductPayday loan                                                                                                        0.04980
+ProductPayday loan, title loan, or personal loan                                                                         19.08832
+ProductPrepaid card                                                                                                       0.05154
+ProductStudent loan                                                                                                       0.72213
+ProductVehicle loan or lease                                                                                             19.32021
+Company.public.responseCompany chooses not to provide a public response                                                  -0.39525
+Company.public.responseCompany has responded to the consumer and the CFPB and chooses not to provide a public response   -0.33669
+Timely.response                                                                                                           1.28752
+Tags_Service                                                                                                             -0.11658
+Consumer.consent.provided                                                                                                 0.07312
+Submitted.via_Referral                                                                                                   -0.38493
+Submitted.via_Postal_mail                                                                                                -0.27208
+Submitted.via_Phone                                                                                                      -0.23646
+Submitted.via_Fax                                                                                                        -0.17827
+                                                                                                                       Std. Error
+(Intercept)                                                                                                               0.39095
+ProductChecking or savings account                                                                                      176.10507
+ProductConsumer Loan                                                                                                      0.10301
+ProductCredit card                                                                                                        0.04533
+ProductCredit card or prepaid card                                                                                       84.03022
+ProductCredit reporting                                                                                                   0.15911
+ProductCredit reporting, credit repair services, or other personal consumer reports                                     153.67592
+ProductDebt collection                                                                                                    0.05693
+ProductMoney transfer, virtual currency, or money service                                                               621.58030
+ProductMoney transfers                                                                                                    0.29096
+ProductMortgage                                                                                                           0.04764
+ProductOther financial service                                                                                            0.48680
+ProductPayday loan                                                                                                        0.55453
+ProductPayday loan, title loan, or personal loan                                                                       1057.17687
+ProductPrepaid card                                                                                                       0.18656
+ProductStudent loan                                                                                                       0.09570
+ProductVehicle loan or lease                                                                                           1766.50849
+Company.public.responseCompany chooses not to provide a public response                                                   0.33237
+Company.public.responseCompany has responded to the consumer and the CFPB and chooses not to provide a public response    0.33075
+Timely.response                                                                                                           0.20529
+Tags_Service                                                                                                              0.06073
+Consumer.consent.provided                                                                                                 0.03795
+Submitted.via_Referral                                                                                                    0.03762
+Submitted.via_Postal_mail                                                                                                 0.05703
+Submitted.via_Phone                                                                                                       0.05312
+Submitted.via_Fax                                                                                                         0.10870
+                                                                                                                       z value
+(Intercept)                                                                                                             -6.136
+ProductChecking or savings account                                                                                       0.109
+ProductConsumer Loan                                                                                                     0.821
+ProductCredit card                                                                                                       3.830
+ProductCredit card or prepaid card                                                                                       0.228
+ProductCredit reporting                                                                                                  1.141
+ProductCredit reporting, credit repair services, or other personal consumer reports                                      0.124
+ProductDebt collection                                                                                                  11.030
+ProductMoney transfer, virtual currency, or money service                                                                0.031
+ProductMoney transfers                                                                                                  -0.890
+ProductMortgage                                                                                                         12.154
+ProductOther financial service                                                                                          -0.174
+ProductPayday loan                                                                                                       0.090
+ProductPayday loan, title loan, or personal loan                                                                         0.018
+ProductPrepaid card                                                                                                      0.276
+ProductStudent loan                                                                                                      7.546
+ProductVehicle loan or lease                                                                                             0.011
+Company.public.responseCompany chooses not to provide a public response                                                 -1.189
+Company.public.responseCompany has responded to the consumer and the CFPB and chooses not to provide a public response  -1.018
+Timely.response                                                                                                          6.272
+Tags_Service                                                                                                            -1.920
+Consumer.consent.provided                                                                                                1.927
+Submitted.via_Referral                                                                                                 -10.232
+Submitted.via_Postal_mail                                                                                               -4.771
+Submitted.via_Phone                                                                                                     -4.451
+Submitted.via_Fax                                                                                                       -1.640
+                                                                                                                       Pr(>|z|)
+(Intercept)                                                                                                            8.48e-10
+ProductChecking or savings account                                                                                     0.913184
+ProductConsumer Loan                                                                                                   0.411888
+ProductCredit card                                                                                                     0.000128
+ProductCredit card or prepaid card                                                                                     0.819861
+ProductCredit reporting                                                                                                0.254063
+ProductCredit reporting, credit repair services, or other personal consumer reports                                    0.901043
+ProductDebt collection                                                                                                  < 2e-16
+ProductMoney transfer, virtual currency, or money service                                                              0.975390
+ProductMoney transfers                                                                                                 0.373282
+ProductMortgage                                                                                                         < 2e-16
+ProductOther financial service                                                                                         0.861537
+ProductPayday loan                                                                                                     0.928436
+ProductPayday loan, title loan, or personal loan                                                                       0.985594
+ProductPrepaid card                                                                                                    0.782333
+ProductStudent loan                                                                                                    4.48e-14
+ProductVehicle loan or lease                                                                                           0.991274
+Company.public.responseCompany chooses not to provide a public response                                                0.234370
+Company.public.responseCompany has responded to the consumer and the CFPB and chooses not to provide a public response 0.308705
+Timely.response                                                                                                        3.57e-10
+Tags_Service                                                                                                           0.054895
+Consumer.consent.provided                                                                                              0.054007
+Submitted.via_Referral                                                                                                  < 2e-16
+Submitted.via_Postal_mail                                                                                              1.84e-06
+Submitted.via_Phone                                                                                                    8.53e-06
+Submitted.via_Fax                                                                                                      0.100988
+                                                                                                                          
+(Intercept)                                                                                                            ***
+ProductChecking or savings account                                                                                        
+ProductConsumer Loan                                                                                                      
+ProductCredit card                                                                                                     ***
+ProductCredit card or prepaid card                                                                                        
+ProductCredit reporting                                                                                                   
+ProductCredit reporting, credit repair services, or other personal consumer reports                                       
+ProductDebt collection                                                                                                 ***
+ProductMoney transfer, virtual currency, or money service                                                                 
+ProductMoney transfers                                                                                                    
+ProductMortgage                                                                                                        ***
+ProductOther financial service                                                                                            
+ProductPayday loan                                                                                                        
+ProductPayday loan, title loan, or personal loan                                                                          
+ProductPrepaid card                                                                                                       
+ProductStudent loan                                                                                                    ***
+ProductVehicle loan or lease                                                                                              
+Company.public.responseCompany chooses not to provide a public response                                                   
+Company.public.responseCompany has responded to the consumer and the CFPB and chooses not to provide a public response    
+Timely.response                                                                                                        ***
+Tags_Service                                                                                                           .  
+Consumer.consent.provided                                                                                              .  
+Submitted.via_Referral                                                                                                 ***
+Submitted.via_Postal_mail                                                                                              ***
+Submitted.via_Phone                                                                                                    ***
+Submitted.via_Fax                                                                                                         
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 46708  on 39173  degrees of freedom
+Residual deviance: 36689  on 39148  degrees of freedom
+AIC: 36741
+
+Number of Fisher Scoring iterations: 16
+
+> #Check for multicollinearity
+> vif(res)
+                              GVIF Df GVIF^(1/(2*Df))
+Product                   1.102432 16        1.003052
+Company.public.response   1.067348  2        1.016428
+Timely.response           1.003773  1        1.001885
+Tags_Service              1.024123  1        1.011989
+Consumer.consent.provided 1.129025  1        1.062556
+Submitted.via_Referral    1.123441  1        1.059925
+Submitted.via_Postal_mail 1.044660  1        1.022086
+Submitted.via_Phone       1.059998  1        1.029562
+Submitted.via_Fax         1.014993  1        1.007468
+> #gc()
+> 
+> # Model Definition
+> churn_logistic<-glm(Consumer.disputed_Y~
++                     Product         
++                      +Company.public.response
++                     +Timely.response
++                     +Tags_Service
++                     +Consumer.consent.provided
++                     +Submitted.via_Referral
++                     +Submitted.via_Postal_mail
++                     +Submitted.via_Phone
++                     +Submitted.via_Fax
++                     ,data=consumercomplaintrainig,family = "binomial")
+> 
+> summary(churn_logistic)
+
+Call:
+glm(formula = Consumer.disputed_Y ~ Product + Company.public.response + 
+    Timely.response + Tags_Service + Consumer.consent.provided + 
+    Submitted.via_Referral + Submitted.via_Postal_mail + Submitted.via_Phone + 
+    Submitted.via_Fax, family = "binomial", data = consumercomplaintrainig)
+
+Deviance Residuals: 
+     Min        1Q    Median        3Q       Max  
+-0.94487  -0.69779  -0.63491   0.00021   2.54753  
+
+Coefficients:
+                                                                                                                         Estimate
+(Intercept)                                                                                                              -2.39576
+ProductChecking or savings account                                                                                       19.22985
+ProductConsumer Loan                                                                                                      0.16748
+ProductCredit card                                                                                                        0.21059
+ProductCredit card or prepaid card                                                                                       19.14908
+ProductCredit reporting                                                                                                   0.21649
+ProductCredit reporting, credit repair services, or other personal consumer reports                                      19.12176
+ProductDebt collection                                                                                                    0.67130
+ProductMoney transfer, virtual currency, or money service                                                                19.19513
+ProductMoney transfers                                                                                                   -0.10152
+ProductMortgage                                                                                                           0.60324
+ProductOther financial service                                                                                           -0.06727
+ProductPayday loan                                                                                                       -0.02378
+ProductPayday loan, title loan, or personal loan                                                                         19.10315
+ProductPrepaid card                                                                                                      -0.28482
+ProductStudent loan                                                                                                       0.77187
+ProductVehicle loan or lease                                                                                             19.38881
+Company.public.responseCompany chooses not to provide a public response                                                  -0.38524
+Company.public.responseCompany has responded to the consumer and the CFPB and chooses not to provide a public response   -0.30897
+Timely.response                                                                                                           1.27370
+Tags_Service                                                                                                             -0.15229
+Consumer.consent.provided                                                                                                 0.08411
+Submitted.via_Referral                                                                                                   -0.43228
+Submitted.via_Postal_mail                                                                                                -0.29263
+Submitted.via_Phone                                                                                                      -0.21823
+Submitted.via_Fax                                                                                                        -0.34143
+                                                                                                                       Std. Error
+(Intercept)                                                                                                               0.45556
+ProductChecking or savings account                                                                                      220.08967
+ProductConsumer Loan                                                                                                      0.12211
+ProductCredit card                                                                                                        0.05573
+ProductCredit card or prepaid card                                                                                      103.32184
+ProductCredit reporting                                                                                                   0.19362
+ProductCredit reporting, credit repair services, or other personal consumer reports                                     188.55902
+ProductDebt collection                                                                                                    0.06984
+ProductMoney transfer, virtual currency, or money service                                                               755.10651
+ProductMoney transfers                                                                                                    0.34836
+ProductMortgage                                                                                                           0.05855
+ProductOther financial service                                                                                            0.54523
+ProductPayday loan                                                                                                        0.63483
+ProductPayday loan, title loan, or personal loan                                                                       1318.46447
+ProductPrepaid card                                                                                                       0.25209
+ProductStudent loan                                                                                                       0.11527
+ProductVehicle loan or lease                                                                                           2277.69548
+Company.public.responseCompany chooses not to provide a public response                                                   0.38272
+Company.public.responseCompany has responded to the consumer and the CFPB and chooses not to provide a public response    0.38054
+Timely.response                                                                                                           0.24716
+Tags_Service                                                                                                              0.07253
+Consumer.consent.provided                                                                                                 0.04640
+Submitted.via_Referral                                                                                                    0.04637
+Submitted.via_Postal_mail                                                                                                 0.06940
+Submitted.via_Phone                                                                                                       0.06412
+Submitted.via_Fax                                                                                                         0.14037
+                                                                                                                       z value
+(Intercept)                                                                                                             -5.259
+ProductChecking or savings account                                                                                       0.087
+ProductConsumer Loan                                                                                                     1.371
+ProductCredit card                                                                                                       3.779
+ProductCredit card or prepaid card                                                                                       0.185
+ProductCredit reporting                                                                                                  1.118
+ProductCredit reporting, credit repair services, or other personal consumer reports                                      0.101
+ProductDebt collection                                                                                                   9.612
+ProductMoney transfer, virtual currency, or money service                                                                0.025
+ProductMoney transfers                                                                                                  -0.291
+ProductMortgage                                                                                                         10.303
+ProductOther financial service                                                                                          -0.123
+ProductPayday loan                                                                                                      -0.037
+ProductPayday loan, title loan, or personal loan                                                                         0.014
+ProductPrepaid card                                                                                                     -1.130
+ProductStudent loan                                                                                                      6.696
+ProductVehicle loan or lease                                                                                             0.009
+Company.public.responseCompany chooses not to provide a public response                                                 -1.007
+Company.public.responseCompany has responded to the consumer and the CFPB and chooses not to provide a public response  -0.812
+Timely.response                                                                                                          5.153
+Tags_Service                                                                                                            -2.100
+Consumer.consent.provided                                                                                                1.813
+Submitted.via_Referral                                                                                                  -9.323
+Submitted.via_Postal_mail                                                                                               -4.217
+Submitted.via_Phone                                                                                                     -3.403
+Submitted.via_Fax                                                                                                       -2.432
+                                                                                                                       Pr(>|z|)
+(Intercept)                                                                                                            1.45e-07
+ProductChecking or savings account                                                                                     0.930375
+ProductConsumer Loan                                                                                                   0.170225
+ProductCredit card                                                                                                     0.000158
+ProductCredit card or prepaid card                                                                                     0.852967
+ProductCredit reporting                                                                                                0.263510
+ProductCredit reporting, credit repair services, or other personal consumer reports                                    0.919225
+ProductDebt collection                                                                                                  < 2e-16
+ProductMoney transfer, virtual currency, or money service                                                              0.979720
+ProductMoney transfers                                                                                                 0.770738
+ProductMortgage                                                                                                         < 2e-16
+ProductOther financial service                                                                                         0.901803
+ProductPayday loan                                                                                                     0.970125
+ProductPayday loan, title loan, or personal loan                                                                       0.988440
+ProductPrepaid card                                                                                                    0.258535
+ProductStudent loan                                                                                                    2.14e-11
+ProductVehicle loan or lease                                                                                           0.993208
+Company.public.responseCompany chooses not to provide a public response                                                0.314130
+Company.public.responseCompany has responded to the consumer and the CFPB and chooses not to provide a public response 0.416831
+Timely.response                                                                                                        2.56e-07
+Tags_Service                                                                                                           0.035751
+Consumer.consent.provided                                                                                              0.069864
+Submitted.via_Referral                                                                                                  < 2e-16
+Submitted.via_Postal_mail                                                                                              2.48e-05
+Submitted.via_Phone                                                                                                    0.000666
+Submitted.via_Fax                                                                                                      0.015001
+                                                                                                                          
+(Intercept)                                                                                                            ***
+ProductChecking or savings account                                                                                        
+ProductConsumer Loan                                                                                                      
+ProductCredit card                                                                                                     ***
+ProductCredit card or prepaid card                                                                                        
+ProductCredit reporting                                                                                                   
+ProductCredit reporting, credit repair services, or other personal consumer reports                                       
+ProductDebt collection                                                                                                 ***
+ProductMoney transfer, virtual currency, or money service                                                                 
+ProductMoney transfers                                                                                                    
+ProductMortgage                                                                                                        ***
+ProductOther financial service                                                                                            
+ProductPayday loan                                                                                                        
+ProductPayday loan, title loan, or personal loan                                                                          
+ProductPrepaid card                                                                                                       
+ProductStudent loan                                                                                                    ***
+ProductVehicle loan or lease                                                                                              
+Company.public.responseCompany chooses not to provide a public response                                                   
+Company.public.responseCompany has responded to the consumer and the CFPB and chooses not to provide a public response    
+Timely.response                                                                                                        ***
+Tags_Service                                                                                                           *  
+Consumer.consent.provided                                                                                              .  
+Submitted.via_Referral                                                                                                 ***
+Submitted.via_Postal_mail                                                                                              ***
+Submitted.via_Phone                                                                                                    ***
+Submitted.via_Fax                                                                                                      *  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 31168  on 26114  degrees of freedom
+Residual deviance: 24555  on 26089  degrees of freedom
+AIC: 24607
+
+Number of Fisher Scoring iterations: 16
+
+> #Feature Analysis
+> anova(churn_logistic, test="Chisq")
+Analysis of Deviance Table
+
+Model: binomial, link: logit
+
+Response: Consumer.disputed_Y
+
+Terms added sequentially (first to last)
+
+
+                          Df Deviance Resid. Df Resid. Dev  Pr(>Chi)    
+NULL                                      26114      31168              
+Product                   16   6458.8     26098      24709 < 2.2e-16 ***
+Company.public.response    2      2.5     26096      24706 0.2795030    
+Timely.response            1     40.9     26095      24665 1.609e-10 ***
+Tags_Service               1      5.9     26094      24660 0.0150565 *  
+Consumer.consent.provided  1      0.9     26093      24659 0.3445201    
+Submitted.via_Referral     1     71.9     26092      24587 < 2.2e-16 ***
+Submitted.via_Postal_mail  1     14.8     26091      24572 0.0001181 ***
+Submitted.via_Phone        1     11.0     26090      24561 0.0009048 ***
+Submitted.via_Fax          1      6.3     26089      24555 0.0120453 *  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+> #find the accuracy of the logistic model
+> 
+> prediction_data<-predict(churn_logistic,consumercomplaintesting,type="response",se.fit=FALSE)
+> predicted_outcome<-ifelse(prediction_data>0.5,1,0)
+> churn<-data.frame(consumercomplaintesting,prediction_data,predicted_outcome)
+> tb<-table(predicted_outcome,consumercomplaintesting$Consumer.disputed_Y)
+> acc<-sum(diag(tb))/sum(tb)
+> acc
+[1] 0.8075657
+> miss_class<-1-acc
+> 
+> #ROC CURVE & performance of the model
+> 
+> roc_pred<-predict(churn_logistic,consumercomplaintesting,type="response")
+> roc_obj<-prediction(roc_pred,consumercomplaintesting$Consumer.disputed_Y)
+> roc_performance<-performance(roc_obj,"tpr","fpr")
+> plot(roc_performance,col=2, lwd=3, main="ROC curve")
+> abline(a=0,b=1)
+> accuracy<-performance(roc_obj,"auc")
+> accuracy
+An object of class "performance"
+Slot "x.name":
+[1] "None"
+
+Slot "y.name":
+[1] "Area under the ROC curve"
+
+Slot "alpha.name":
+[1] "none"
+
+Slot "x.values":
+list()
+
+Slot "y.values":
+[[1]]
+[1] 0.709031
+
+
+Slot "alpha.values":
+list()
+
+> 
+> 
+> #Decission Tree
+> tree <- ctree(Consumer.disputed_Y~Timely.response+Product, consumercomplaintrainig)
+> plot(tree, type='simple')
+> 
+> 
+> fit <-rpart(Consumer.disputed_Y~
++             Product 
++             +Issue 
++             +Company.public.response 
++             +Company 
++             #+State 
++             +Complaint.ID 
++             +Timely.response 
++             +Tags_Service 
++             +Consumer.consent.provided 
++             +Submitted.via_Email 
++             +Submitted.via_Referral 
++             +Submitted.via_Postal_mail 
++             +Submitted.via_Phone 
++             +Submitted.via_Fax,
++             data=consumercomplaintrainig
++             ,method="class"
++           
++             )
+> summary(fit)
+Call:
+rpart(formula = Consumer.disputed_Y ~ Product + Issue + Company.public.response + 
+    Company + Complaint.ID + Timely.response + Tags_Service + 
+    Consumer.consent.provided + Submitted.via_Email + Submitted.via_Referral + 
+    Submitted.via_Postal_mail + Submitted.via_Phone + Submitted.via_Fax, 
+    data = consumercomplaintrainig, method = "class")
+  n= 26115 
+
+         CP nsplit rel error    xerror        xstd
+1 0.3933675      0 1.0000000 1.0000000 0.009824208
+2 0.0100000      1 0.6066325 0.6066325 0.008227200
+
+Variable importance
+Complaint.ID        Issue      Product 
+          37           35           28 
+
+Node number 1: 26115 observations,    complexity param=0.3933675
+  predicted class=0  expected loss=0.2840513  P(node) =1
+    class counts: 18697  7418
+   probabilities: 0.716 0.284 
+  left son=2 (23197 obs) right son=3 (2918 obs)
+  Primary splits:
+      Complaint.ID           < 2456023 to the left,  improve=3367.73000, (0 missing)
+      Issue                  splits as  LLLRLLLLRRLLRLLLLLLRLRLLRL-RRRLLLLRRLLLLLLLRLLLLLRLLLLLLLRLLR-L-RLLLRLLRLLLLRRLRLLLRLRLRLLRLRLLLLLRRRRRRRRR-RRRRLLLLLLLLLRRRLLRRLRRRLRLRLLLRL, improve=3235.14800, (0 missing)
+      Product                splits as  LRLLRLRLRLLLLRLLR, improve=2531.45800, (0 missing)
+      Submitted.via_Email    < 0.5     to the left,  improve=  76.25606, (0 missing)
+      Submitted.via_Referral < 0.5     to the right, improve=  64.41947, (0 missing)
+  Surrogate splits:
+      Issue   splits as  LLLRLLLLRRLLRLLLLLLRLLLLLL-RRRLLLLRRLLLLLLLRLLLLLRLLLLLLLRLLR-L-RLLLRLLRLLLLLRLRLLLRLRLRLLRLRLLLLLRRRRRRRRR-RRRRLLLLLLLLLRRRLLRRLRRRLRLRLLLRL, agree=0.996, adj=0.964, (0 split)
+      Product splits as  LRLLRLRLRLLLLRLLR, agree=0.975, adj=0.773, (0 split)
+
+Node number 2: 23197 observations
+  predicted class=0  expected loss=0.1939906  P(node) =0.8882635
+    class counts: 18697  4500
+   probabilities: 0.806 0.194 
+
+Node number 3: 2918 observations
+  predicted class=1  expected loss=0  P(node) =0.1117365
+    class counts:     0  2918
+   probabilities: 0.000 1.000 
+
+> # plot tree
+> rpart.plot(fit,type=4,extra=2,clip.right.labs=FALSE,varlen = 0,faclen = 0)
+> 
+> #find the accuracy of the Decission Tree  model
+> aabpredict<-predict(fit,consumercomplaintesting,type="class")
+> head(aabpredict)
+ 4  5  6  7 14 19 
+ 0  0  0  0  0  0 
+Levels: 0 1
+> tb<-table(consumercomplaintesting$Consumer.disputed_Y,aabpredict)
+> sum(diag(tb))/sum(tb)
+[1] 0.8317635
+> #ROC CURVE & performance of the model
+> aoc<-predict(fit,consumercomplaintesting,type="prob")
+> aad<-aoc[,2]
+> head(aad)
+        4         5         6         7        14        19 
+0.1939906 0.1939906 0.1939906 0.1939906 0.1939906 0.1939906 
+> aoe<-prediction(aad,consumercomplaintesting$Consumer.disputed_Y)
+> rocc<-performance(aoe,"tpr","fpr")
+> plot(rocc,col=3, lwd=4, main="ROC curve")
+> abline(a=0,b=1)
+> performance(aoe,"auc")
+An object of class "performance"
+Slot "x.name":
+[1] "None"
+
+Slot "y.name":
+[1] "Area under the ROC curve"
+
+Slot "alpha.name":
+[1] "none"
+
+Slot "x.values":
+list()
+
+Slot "y.values":
+[[1]]
+[1] 0.7018996
+
+
+Slot "alpha.values":
+list()
+
+> gc()
+           used  (Mb) gc trigger  (Mb) max used  (Mb)
+Ncells  2645457 141.3    4703850 251.3  4703850 251.3
+Vcells 10982788  83.8   22192121 169.4 22183158 169.3
+> 
+> #### Random Forest
+> 
+> 
+> consumercomplain$Consumer.disputed_Y<-ifelse(consumercomplain$Consumer.disputed_Y==1,"Yes","No")
+> #####Split data
+> 
+> set.seed(200)
+> splitdata<-sample.split(consumercomplain,SplitRatio=.7)
+> #consumercomplain$Consumer.disputed_Y<-ifelse(consumercomplain$Consumer.disputed_Y.==1,"Yes","No")
+> 
+> consumercomplaintrainig<-subset(consumercomplain,splitdata==TRUE)
+> consumercomplaintesting<-subset(consumercomplain,splitdata==FALSE)
+> 
+> consumercomplaintrainig$Issue<-NULL
+> consumercomplaintrainig$Company<-NULL
+> consumercomplaintrainig$State<-NULL
+> #Initial random model
+> str(consumercomplain)
+'data.frame':	39174 obs. of  15 variables:
+ $ Product                  : Factor w/ 17 levels "Bank account or service",..: 8 4 11 4 4 8 4 11 11 4 ...
+ $ Issue                    : Factor w/ 141 levels "Account opening, closing, or management",..: 34 42 75 31 17 53 11 76 76 74 ...
+ $ Company.public.response  : Factor w/ 3 levels "Company believes it acted appropriately as authorized by contract or law",..: 3 3 3 3 3 3 3 3 3 3 ...
+ $ Company                  : Factor w/ 1 level "CITIBANK, N.A.": 1 1 1 1 1 1 1 1 1 1 ...
+ $ State                    : Factor w/ 61 levels "AA","AE","AK",..: 55 21 9 33 22 25 9 61 32 42 ...
+ $ Complaint.ID             : int  1027760 2349987 192496 1135236 223071 2389782 446256 1853003 1421473 1997215 ...
+ $ Timely.response          : num  1 1 1 1 1 1 1 1 1 1 ...
+ $ Consumer.disputed_Y      : chr  "Yes" "No" "No" "No" ...
+ $ Tags_Service             : num  1 1 1 1 1 1 1 1 1 1 ...
+ $ Consumer.consent.provided: num  1 1 1 1 1 0 1 1 1 1 ...
+ $ Submitted.via_Email      : num  1 1 0 0 0 1 1 1 1 0 ...
+ $ Submitted.via_Referral   : num  0 0 1 0 1 0 0 0 0 0 ...
+ $ Submitted.via_Postal_mail: num  0 0 0 1 0 0 0 0 0 1 ...
+ $ Submitted.via_Phone      : num  0 0 0 0 0 0 0 0 0 0 ...
+ $ Submitted.via_Fax        : num  0 0 0 0 0 0 0 0 0 0 ...
+> rfModel<-randomForest(as.factor(Consumer.disputed_Y)~
++                         
++                         Product
++                       +Company.public.response
++                       +Complaint.ID
++                       +Timely.response
++                       +Tags_Service
++                       +Consumer.consent.provided
++                       +Submitted.via_Email
++                       +Submitted.via_Referral
++                       +Submitted.via_Postal_mail
++                       +Submitted.via_Phone
++                       +Submitted.via_Fax
++                       ,data=consumercomplaintrainig
++                       ,ntree=500
++                       ,mtry=4
++                      , method="class")
+> 
+> print(rfModel)
+
+Call:
+ randomForest(formula = as.factor(Consumer.disputed_Y) ~ Product +      Company.public.response + Complaint.ID + Timely.response +      Tags_Service + Consumer.consent.provided + Submitted.via_Email +      Submitted.via_Referral + Submitted.via_Postal_mail + Submitted.via_Phone +      Submitted.via_Fax, data = consumercomplaintrainig, ntree = 500,      mtry = 4, method = "class") 
+               Type of random forest: classification
+                     Number of trees: 500
+No. of variables tried at each split: 4
+
+        OOB estimate of  error rate: 17.24%
+Confusion matrix:
+       No  Yes class.error
+No  18695    2 0.000106969
+Yes  4500 2918 0.606632516
+> plot(rfModel,col=3)
+> #tune the model
+> tuneRandomForest <- tuneRF(consumercomplaintrainig[, -5], as.factor(consumercomplaintrainig[, 5]), stepFactor = 0.2, plot = TRUE, ntreeTry = 200, trace = TRUE, improve = 0.05)
+mtry = 3  OOB error = 17.23% 
+Searching left ...
+mtry = 15 	OOB error = 24.02% 
+-0.394 0.05 
+Searching right ...
+mtry = 0 	OOB error = 23.57% 
+-0.3677778 0.05 
+Warning messages:
+1: In randomForest.default(x, y, mtry = mtryCur, ntree = ntreeTry,  :
+  invalid mtry: reset to within valid range
+2: In randomForest.default(x, y, mtry = mtryCur, ntree = ntreeTry,  :
+  invalid mtry: reset to within valid range
+3: In xy.coords(x, y, xlabel, ylabel, log) :
+  1 x value <= 0 omitted from logarithmic plot
+> #plot(tuneRandomForest)
+> 
+> # Fitted Random Forest
+> rfModel<-randomForest(as.factor(Consumer.disputed_Y)~
++                         
++                         Product
++                       +Company.public.response
++                       +Complaint.ID
++                       +Timely.response
++                       +Tags_Service
++                       +Consumer.consent.provided
++                       +Submitted.via_Email
++                       +Submitted.via_Referral
++                       +Submitted.via_Postal_mail
++                       +Submitted.via_Phone
++                       +Submitted.via_Fax
++                       ,data=consumercomplaintrainig
++                       ,ntree=250
++                       ,mtry=3
++                       ,importance = TRUE
++                       , method="class")
+> #print(rfModel)
+> 
+> set.seed(200)
+> 
+> consumercomplain$Consumer.disputed_Y<-ifelse(consumercomplain$Consumer.disputed_Y=="Yes",1,0)
+> splitdata<-sample.split(consumercomplain,SplitRatio=.7)
+> consumercomplaintrainig<-subset(consumercomplain,splitdata==TRUE)
+> consumercomplaintesting<-subset(consumercomplain,splitdata==FALSE)
+> 
+> 
+> 
+> rfModel<-randomForest(Consumer.disputed_Y ~
++                         
++                         Product
++                       +Company.public.response
++                       +Complaint.ID
++                       +Timely.response
++                       +Tags_Service
++                       +Consumer.consent.provided
++                       +Submitted.via_Email
++                       +Submitted.via_Referral
++                       +Submitted.via_Postal_mail
++                       +Submitted.via_Phone
++                       +Submitted.via_Fax
++                       ,data=consumercomplaintrainig
++                       
++                       , method="class")
+Warning message:
+In randomForest.default(m, y, ...) :
+  The response has five or fewer unique values.  Are you sure you want to do regression?
+> 
+> aapr1<-predict(rfModel,consumercomplaintesting,type="class")
+> aapr2<-ifelse(aapr1>=.5,1,0)
+> tb1<-table(consumercomplaintesting$Consumer.disputed_Y,aapr2)
+> sum(diag(tb1))/sum(tb1)
+[1] 0.8317635
+> 
+> aapr3<-prediction(aapr1,consumercomplaintesting$Consumer.disputed_Y)
+> aapr4<-performance(aapr3,"tpr","fpr")
+> plot(aapr4, lwd=2, main="ROC curve")
+> abline(a=0,b=1)
+> aapr5<-performance(aapr3,"auc")
+> aapr5
+An object of class "performance"
+Slot "x.name":
+[1] "None"
+
+Slot "y.name":
+[1] "Area under the ROC curve"
+
+Slot "alpha.name":
+[1] "none"
+
+Slot "x.values":
+list()
+
+Slot "y.values":
+[[1]]
+[1] 0.7467263
+
+
+Slot "alpha.values":
+list()
+
+> abline(a=0,b=1)
+> alpha<-round(as.numeric(unlist(aapr4@alpha.values)),4)
+> fpr<-round(as.numeric(unlist(aapr4@x.values)),4)
+> tpr<-round(as.numeric(unlist(aapr4@y.values)),4)
+> i<-which(round(alpha,2)==0.30)
+> paste("Threshold=",(alpha[i]),"TPR=", tpr[i], "FPR=", fpr[i])
+[1] "Threshold= 0.3043 TPR= 0.4065 FPR= 0.0029"
+[2] "Threshold= 0.3036 TPR= 0.4065 FPR= 0.003" 
+[3] "Threshold= 0.3033 TPR= 0.4065 FPR= 0.0031"
+[4] "Threshold= 0.3019 TPR= 0.4065 FPR= 0.0032"
+[5] "Threshold= 0.3002 TPR= 0.4065 FPR= 0.0033"
+[6] "Threshold= 0.2999 TPR= 0.4065 FPR= 0.0034"
+[7] "Threshold= 0.2998 TPR= 0.4065 FPR= 0.0035"
+[8] "Threshold= 0.2989 TPR= 0.4065 FPR= 0.0037"
+[9] "Threshold= 0.2961 TPR= 0.4065 FPR= 0.0038"
